@@ -1,0 +1,15 @@
+torch 
+transformers
+bertviz
+jupyterlab
+ipywidgets
+pandas
+numpy
+scikit-learn
+plotly
+matplotlib
+ipympl
+jax
+jaxlib
+flax
+seaborn
