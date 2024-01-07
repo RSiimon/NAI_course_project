@@ -13,3 +13,5 @@ jax
 jaxlib
 flax
 seaborn
+nltk
+wordnet

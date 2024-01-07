@@ -175,3 +175,11 @@ pyrightconfig.json
 
 # End of https://www.toptal.com/developers/gitignore/api/python
 notebooks/.DS_Store
+/.idea/.gitignore
+/.idea/vcs.xml
+/.idea/deployment.xml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/NAI_course_project.iml
+/.idea/other.xml
+/.idea/inspectionProfiles/profiles_settings.xml

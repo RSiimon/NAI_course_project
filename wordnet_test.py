@@ -27,8 +27,22 @@ from wordnet import *
 
 
 p = "data/"
-fname = "ChatGPT_simple_sents.csv"
+fname = "ChatGPT_simple_sents2.csv"
 
+# ----------------------------------------
+
+# NOTE:
+# This file was used to compile a table of sentences with wordnet outputs (hyponyms and hyperonyms). Different columns in the output file (df.csv) correspond to different levels of filtering in wordnet.
+
+# This output file was then manually reviewed (currently 63 sentences out of 300 have been reviewed). The review consisted in choosing the final hyponyms and hyperonyms to be used. They were chosen so that replacing the target word with its  hyponym or hyperonym doesnt make the sentence weird. In many cases, the hyponyms/hyperonyms from wordnet had somewhat different meaning and did not fit in the sentence - those were left out. On the other hand, in some cases wordnet did not offer any suitable hyperonyms or hyponyms. In such cases, if possible, hyponym(s) / hyperonym(es) were added manually, or otherwise the target word was left out. (If all target words in a sentence were left out, then the whole sentence was of course also left out). 
+# With hyponyms, the reviewing mainly consisted in leaving out hyponyms that were extremenly specific (latin names of species or rarely used colloquialisms), and hyponyms that did not fit in the sentence. Hyponyms from wordnet were rarely missing. 
+# With hyperonyms, the output of wordnet contained fewer terms, and in some cases did not offer any suitable ones. Still, in the majority of cases, it did offer some suitabl ones. So the main task here was to add suitable hyponyms manually if none from wordnet fitted the sentence.  
+
+
+# The input file (300 sentences generated with ChatGPT): "ChatGPT_simple_sents2.csv"
+# The output file: "df_rev1.csv"
+# The manually reviewed output file is: 'df_rev2_63.csv'
+# 
 
 # ----------------------------------------
 
@@ -44,78 +58,74 @@ sents = load_data(p, fname)
 # TESTING WITH ALL DATA:    
     
 # Tokenized sentences, with analysis of nouns and adjectives in each sentences:
-results = [add_relations(sent) for sent in sents] # len 300
+# results = [add_relations(sent) for sent in sents] # len 300
+results2 = add_relations2(sents, 0) 
+results3 = add_relations2(sents, 1) 
+results4 = add_relations2(sents, 2) 
 
-# Let's look at results for first sentence:
-results1 = results[0]
+df = pd.DataFrame()
+df['sent'] = results2['sent']
+df['lemma'] = results2['lemma']
+# df['form'] = results2['form']
+df['hypo1A']= results2['hypo1']
+df['hypo1B']= results3['hypo1']
+df['hypo1C']= results4['hypo1']
+df['hypo2A']= results2['hypo2']
+df['hypo2B']= results3['hypo2']
+df['hypo2C']= results4['hypo2']
+df['hypo3A']= results2['hypo3']
+df['hypo3B']= results3['hypo3']
+df['hypo3C']= results4['hypo3']
+   
+df['hyper1A']= results2['hyper1']
+df['hyper1B']= results3['hyper1']   
+df['hyper1C']= results4['hyper1']   
+df['hyper2A']= results2['hyper2']
+df['hyper2B']= results3['hyper2']
+df['hyper2C']= results4['hyper2']
+df['hyper3A']= results2['hyper3']
+df['hyper3B']= results3['hyper3']
+df['hyper3C']= results4['hyper3']
 
-# It contains:
+   
+df.to_csv(p + "df_rev1.csv", encoding = "utf-8")
+
+
+
+# # ========================================================
+
+# # LOOKING AT OUTPUT:
+
+# # Let's look at results for first sentence:
+# row = results2.loc[8]
+
+# for key, value in row.items():
+#     print(key, ':', value)
+
+# # sent : The delicious aroma of freshly baked cookies filled the cozy kitchen.
+# # word : kitchen
+# # lemma : kitchen
+# # form : singular
+# # start : 10
+# # hypo1 : ['kitchenette', 'caboose', 'galley', 'cookhouse', "ship's galley"]
+# # hypo2 : ['cuddy', 'trireme']
+# # hypo3 : []
+# # hyper1 : ['room']
+# # hyper2 : ['chance', 'opportunity', 'gathering', 'assemblage', 'position', 'area', 'spatial relation']
+# # hyper3 : ['possibleness', 'peril', 'occupation', 'body part', 'role', 'job', 'social group', 'line', 'orientation', 'structure', 'risk', 'extent', 'bodily property', 'construction', 'business', 'issue', 'relation', 'assumption', 'mental attitude', 'attitude', 'subject', 'matter', 'region', 'danger', 'point', 'topic', 'possibility', 'line of work']
+# # tokenized_sent : ['The', 'delicious', 'aroma', 'of', 'freshly', 'baked', 'cookies', 'filled', 'the', 'cozy', 'kitchen', '.']
+
+
+# # -------------------------------
+
+# # GETTING NEW SENTENCE:
     
-# a) Tokenized sentence:
-tokenized_sent = results1[0]
-print(tokenized_sent) # ['The', 'fluffy', 'cat', 'napped', 'lazily', 'in', 'the', 'warm', 'sunlight', '.']
-
-
-# b) Info for each noun and adjective, incl:
-# -- hyponyms and hypernyms,
-# -- position of the word in tokenized sentence,
-# -- info needed for inserting the hyponym or hyperonym back into the sentence 
-# (e.g. 'word_form' is needed for converting the lemma to correct word form 
-# (pluaral for nouns, or comparative or superlative for adjectives), if the 
-# original word was in that form).
-
-words = results1[1]
-for key, value in words[1].items():
-    print(key, ':', str(value))
-# word : cat 
-# word_type : noun 
-# start_pos : 2 
-# lemma : cat 
-# word_form : singular 
-# hyper : ['feline', 'gossip', 'woman'] 
-# hypo : ['saber-toothed tiger', 'sabertooth', 'wildcat', 'liger', 'snow leopard', 'ounce', 'panthera uncia', 'lion', 'king of beasts', 'panthera leo', 'cheetah', 'chetah', 'acinonyx jubatus', 'tiglon', 'tigon', 'tiger', 'panthera tigris', 'jaguar', 'panther', 'panthera onca', 'felis onca', 'domestic cat', 'house cat', 'felis domesticus', 'felis catus', 'sod', 'leopard', 'panthera pardus'] 
-
-# -------------------------------
-
-# GETTING NEW SENTENCE:
+# tokenized_sent = row['tokenized_sent']
+# print(tokenized_sent) # ['The', 'delicious', 'aroma', 'of', 'freshly', 'baked', 'cookies', 'filled', 'the', 'cozy', 'kitchen', '.']
     
-# Getting new sentence, where original word is replaced with hyponym/hypernym:
-new_sent = replace_word(tokenized_sent, words[1], words[1]['hyper'][0])
-# 'The fluffy feline napped lazily in the warm sunlight .'
+# # Getting new sentence, where original word is replaced with hyponym/hypernym:
+# new_sent = replace_word(tokenized_sent, row, 'ship galley')
+# # 'The delicious aroma of freshly baked cookies filled the cozy ship galley .'
 
 
-# ============================================
 
-# STATISTICS:
-    
-# how many hyponyms and hypernyms, nouns and adjectives?
-noun_hypo, noun_hyper = 0, 0
-adj_hypo, adj_hyper = 0, 0
-tot_nouns, tot_adj = 0,0
-
-for i, s in enumerate(results):
-    for word in s[1]:
-        if word["word_type"]=="noun":
-            tot_nouns+=1
-            noun_hypo+= len(word['hypo'])
-            noun_hyper+= len(word['hyper'])
-        else:
-            tot_adj+=1
-            adj_hypo+= len(word['hypo'])
-            adj_hyper+= len(word['hyper'])   
-
-noun_hypo_avg = str(round(noun_hypo/tot_nouns, 1))
-noun_hyper_avg = str(round(noun_hyper/tot_nouns, 1))
-adj_hypo_avg = str(round(adj_hypo/tot_adj, 1))
-adj_hyper_avg = str(round(adj_hyper/tot_adj, 1))
-
-
-print('Nouns (', tot_nouns, ') had', noun_hyper, 'hypernyms (on avg.',  noun_hyper_avg, 'per noun) and', noun_hypo, 'hyponyms (on avg.', noun_hypo_avg, 'per noun).')
-# Nouns ( 1134 ) had 2827 hypernyms (on avg. 2.5 per noun) and 35970 hyponyms (on avg. 31.7 per noun).
-
-print('Adjectives (', tot_adj, ') had', adj_hyper, 'hypernyms (on avg.',  adj_hyper_avg, 'per adjective) and', adj_hypo, 'hyponyms (on avg.', adj_hypo_avg, 'per adjective).')
-# Adjectives ( 438 ) had 0 hypernyms (on avg. 0.0 per adjective) and 0 hyponyms (on avg. 0.0 per adjective).
-
-
-# 35970*31.7 # 1.1 million estimated hyponyms at next level
-    
