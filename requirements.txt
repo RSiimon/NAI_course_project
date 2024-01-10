@@ -15,3 +15,5 @@ flax
 seaborn
 nltk
 wordnet
+inflect
+pattern3
