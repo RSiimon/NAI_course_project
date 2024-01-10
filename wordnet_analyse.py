@@ -47,7 +47,7 @@ p = "data/"
 # fname = "ChatGPT_simple_sents2.csv"
 # fname_rev = "df_rev2_63.csv"
 fname = "df_final.csv"
-p2 = "plots/"
+p2 = "pca_plots/"
 
 
 # =====================================================
@@ -442,21 +442,25 @@ def plot_embeddings(layers, pca_dfX, figsize, use_scaling, save_plot, p2, lemma,
     # tok_id = result[1][0] - 1 # target
     # tok_id = result2[1][0] - 1 #new 
    
+    has_type = "type" in pca_dfX.columns.tolist() # if we plot multiple sents
+    
     # Only plot context words for original sentence:
-    pca_dfX = pca_dfX[pca_dfX["type"] != "hyper_context"]
-    pca_dfX = pca_dfX[pca_dfX["type"] != "hypo_context"]    
-    pca_dfX.index = [x for x in range(len(pca_dfX))]
+    if has_type:
+        pca_dfX = pca_dfX[pca_dfX["type"] != "hyper_context"]
+        pca_dfX = pca_dfX[pca_dfX["type"] != "hypo_context"]    
+        pca_dfX.index = [x for x in range(len(pca_dfX))]
     
     # Order so that hyper, target will be plotted last:
-    d = {"target": 3, "hyper": 2, "hypo": 1, "target_context": 0, "hyper_context": -1, "hypo_context": -2}
-    priorities = []
-    
-    for t in pca_dfX["type"].tolist():
-        priorities.append(d[t])
+    if has_type:
+        d = {"target": 3, "hyper": 2, "hypo": 1, "target_context": 0, "hyper_context": -1, "hypo_context": -2}
+        priorities = []
         
-    pca_dfX["priority"] = priorities
-    pca_dfX= pca_dfX.sort_values(by = ["priority"])
-    pca_dfX.index = [x for x in range(len(pca_dfX))]    
+        for t in pca_dfX["type"].tolist():
+            priorities.append(d[t])
+            
+        pca_dfX["priority"] = priorities
+        pca_dfX= pca_dfX.sort_values(by = ["priority"])
+        pca_dfX.index = [x for x in range(len(pca_dfX))]    
     
     # Plot:
     plt.rcParams['figure.figsize'] = figsize # [18, 6] # [12, 3]
@@ -479,10 +483,11 @@ def plot_embeddings(layers, pca_dfX, figsize, use_scaling, save_plot, p2, lemma,
         plt.ylabel("PC2")    
 
         for j, label in enumerate(pca_dfX['tokens']):
-            tok_type = pca_dfX.loc[j]['type']
-            # alpha = 0.5 if "context" in tok_type else 1.0
-            if "context" not in tok_type:
-                label = label.upper()
+            if has_type:
+                tok_type = pca_dfX.loc[j]['type']
+                # alpha = 0.5 if "context" in tok_type else 1.0
+                if "context" not in tok_type:
+                    label = label.upper()
                 
             x = pca_dfX[label1][j] + 0.03 
             y = pca_dfX[label2][j] + 0.03
@@ -505,10 +510,10 @@ def plot_embeddings(layers, pca_dfX, figsize, use_scaling, save_plot, p2, lemma,
 
 
 # PCA + plotting:
-def pca_plot(hidden_statesX, resultX, layers, figsize, use_scaling, join_toks, n_components=2):
+def pca_plot(hidden_statesX, resultX, layers, figsize, use_scaling, save_plot, join_toks, n_components, p2, lemma, sent_id):
     # hidden_statesX = hidden_states
     pca_dfX_ = make_pca_df(hidden_statesX, resultX, layers, use_scaling, join_toks, n_components=2)
-    plot_embeddings(layers, pca_dfX_, figsize, use_scaling) 
+    plot_embeddings(layers, pca_dfX_, figsize, use_scaling, save_plot, p2, lemma, sent_id) 
 
     
 # ========================================================
@@ -538,32 +543,31 @@ figsize = [12, 6] # [18, 6]
 layers = [1, 2, 3, 4, 5, 6] # [0, 1, -1] # [1, 5] # for pca plots
 use_scaling = True # dont change (for pca)
 # use_scaling = False
+n_components = 2
+join_toks = True # False # True
+save_plot = True
 
 sent_id = 8
 is_hypo = True # False # True # hyponyme or hypernyme
-# is_hypo = False
 new_id = 0 # id of hyponyme or hypernyme in their list
-join_toks = True # False # True
 
-# for i, h in enumerate(df.hyper):
-#     if "dog" in h:
-#         print(i)
-len(df.hypo[sent_id])
-len(df.hyper[sent_id])
-df.hypo[sent_id][12]
+# len(df.hypo[sent_id])
+# len(df.hyper[sent_id])
+# df.hypo[sent_id][12]
         
 
 # a) Original sentence (containing target word):
+lemma = df.loc[sent_id]["lemma"]
 result, hid_target = get_results_orig(df, sent_id, model, join_toks)
-pca_plot(hid_target, result, layers, figsize, use_scaling, join_toks, n_components=2)
+pca_plot(hid_target, result, layers, figsize, use_scaling, save_plot, join_toks, n_components, p2, lemma, sent_id)
 # pca_df_target = make_pca_df(hid_target, result, layers, use_scaling, join_toks, n_components=2)
-# plot_embeddings(layers, pca_df_target, figsize, use_scaling) 
+# plot_embeddings(layers, pca_df_target, figsize, use_scaling, save_plot, p2, lemma, sent_id) 
 
 # b) Sentence with hyponym/hypernym:
 result2, hid_new = get_results_new(df, sent_id, is_hypo, new_id, result, model, join_toks)
-pca_plot(hid_new, result2, layers, figsize, use_scaling, join_toks, n_components=2)
+pca_plot(hid_new, result2, layers, figsize, use_scaling, save_plot, join_toks, n_components, p2, lemma, sent_id)
 # pca_df_new = make_pca_df(hid_new, result2, layers, use_scaling, join_toks, n_components=2)
-# plot_embeddings(layers, pca_df_new, figsize, use_scaling) 
+# plot_embeddings(layers, pca_df_new, figsize, use_scaling, save_plot, p2, lemma, sent_id) 
 
 # ----------------------
 
@@ -574,15 +578,17 @@ sent_id, new_id, is_hypo, join_toks = 2, 0, False, False
 sent_id, new_id, is_hypo, join_toks = 2, 0, False, True
 
 result, hid_target = get_results_orig(df, sent_id, model, join_toks)
-pca_plot(hid_target, result, layers, figsize, use_scaling, join_toks, n_components=2)
+pca_plot(hid_target, result, layers, figsize, use_scaling, save_plot, join_toks, n_components, p2, lemma, sent_id)
 
 is_hypo = False
 is_hypo = True
 
 counts = len(df.hypo[sent_id]) if is_hypo else len(df.hyper[sent_id]) 
+save_plot = False # (if True, plots all sentences (also non-target words) on same plot)
 for i in range(counts):
     result2, hid_new = get_results_new(df, sent_id, is_hypo, i, result, model, join_toks)
-    pca_plot(hid_new, result2, layers, figsize, use_scaling, join_toks, n_components=2)
+    pca_plot(hid_new, result2, layers, figsize, use_scaling, save_plot, join_toks, n_components, p2, lemma, sent_id)
+
 
 # ==========================================================
 
@@ -626,12 +632,12 @@ use_scaling = True
 save_plot = True
 join_toks = True
 
-# for sent_id in range(len(df)):
-#     lemma = df.loc[sent_id]["lemma"]
-#     prep = get_results_all(df, sent_id, model, join_toks)
-#     pca_df = make_pca_df_all(prep, layers, use_scaling, join_toks, colors)
-#     plot_embeddings(layers, pca_df, figsize, use_scaling, save_plot, p2, lemma, sent_id) 
-#     print(sent_id)
+for sent_id in range(len(df)):
+    lemma = df.loc[sent_id]["lemma"]
+    prep = get_results_all(df, sent_id, model, join_toks)
+    pca_df = make_pca_df_all(prep, layers, use_scaling, join_toks, colors)
+    plot_embeddings(layers, pca_df, figsize, use_scaling, save_plot, p2, lemma, sent_id) 
+    print(sent_id)
 
 
 sent_id = 64
@@ -653,273 +659,3 @@ print(sent_id)
 
 
 
-
-# TODO:
-# Plot new and target on same plot (teised sõnad eri tooni; või lisaks nool nende vahel - et kust kuhu abstraktsemaks muutumisel liikus; lisaks: erista hypot/hyperit: värv, toon ja või suurtähed abstraktsema puhul)
-
-# TODO:
-# Plot only target word and all its hyponyms or hypernyms (leaving out other words for clarity)
-
-# TODO:
-# cos sims
-    
-
-
-# ========================================================
-
-# TODO:
-# PLOT TWO SENTENCES (WITH TARGET SND REPLACEMENT WORD):
-
-def plot_embeddings(layers, pca_df, figsize, use_scaling):
-    # layers = [1, 2, 3, 4, 5, 6]
-    # pca_df = pca_df_new
-    # pca_df = pca_df_target
-    # figsize = [12, 6] # [18, 6]
-    # tok_id = result[1][0] - 1 # target
-    # tok_id = result2[1][0] - 1 #new 
-   
-    plt.rcParams['figure.figsize'] = figsize # [18, 6] # [12, 3]
-    # plt.rcParams.update({'font.size': 26})
-
-    nrows = str(2 if len(layers)>3 else 1)
-    ncols = str(len(layers) if len(layers) < 4 else 3)
-    # pca_df2['color'] = "blue"
-    # pca_df2['color'][tok_id] = "red"
-    
-    for i, layer in enumerate(layers):        
-        plt.subplot(int(nrows + ncols + str(i+1)))
-        label1 ="pc1_layer" + str(layer)
-        label2 = "pc2_layer" + str(layer)
-        plt.grid(alpha=0.75)
-        plt.scatter(pca_df[label1], pca_df[label2], c = pca_df["color"]) # marker="o", markerfacecolor = "red", markeredgecolor="orange", markersize=20
-
-        plt.title("Embeddings in layer " + str(layer))
-        plt.xlabel("PC1")
-        plt.ylabel("PC2")    
-
-        for j, label in enumerate(pca_df['tokens']):
-            x = pca_df[label1][j] + 0.03 
-            y = pca_df[label2][j] + 0.03
-            color_ = pca_df["color"][j]
-            if use_scaling == True:  # axis in range (0.0, 1.0)
-                if x > 0.9:
-                    x-=0.1
-                if y > 0.95:
-                    y-=0.1
-            plt.annotate(label, (x, y), color = color_)
-            
-    plt.subplots_adjust(hspace = 0.45, wspace = 0.3)
-    plt.show()
-
-
-# ============================================
-
-# SAVE:
-
-# df.to_csv(p + "df_final2.csv", encoding = "utf-8")
-
-
-
-# ========================================================
-
-# SCRAP:
-
-# ======================================================== 
-
-# OLD:
-# model_name = "distilbert-base-uncased-finetuned-sst-2-english"
-
-# tokenizer = AutoTokenizer.from_pretrained(model_name)
-# model = AutoModelForSequenceClassification.from_pretrained(
-#     model_name, output_hidden_states=True, output_attentions=True)    
-
-# ========================================================
-
-# MOST COMMENTS REMOVED FROM HERE IN FINAL VERSION:
-
-# TOKENIZE AND IDENTIFY IDS OF TARGET WORD AND HYPONYM/HYPERNYM IN TOKENIZED SENTENCE
-
-# -- Needed for token tracking
-# -- Consider that tokenizeer may split single word into multiple tokens, and that some hyponyms/hypernyms consist of several words.
-# -- Original target word is always just one word, not a phrase.
-
-sent_id = 8
-is_hypo = True # hyponyme or hypernymee
-new_id = 0 # id of hyponyme or hypernyme in their list
-
-row = df.loc[sent_id]
-# word_orig = row.word # 'trees'
-
-# Tokenized original sentence, its parts and location of target word:
-result = tokenize_orig(row)
-# tokenized_sent_orig = result[0] # ['[CLS]', 'the', 'ancient', 'trees', 'whispered', 'in', 'the', 'peaceful', 'forest', '.', '[SEP]']
-# target_range = result[1] #  [3, 4]
-# tokens_start = result[2] # ['[CLS]', 'the', 'ancient']
-# tokens_end = result[3] # ['whispered', 'in', 'the', 'peaceful', 'forest', '.', '[SEP]'])
-# tokens_target = result[4] # ['trees']
-
-print(result)
-## ['[CLS]', 'the', 'ancient', 'trees', 'whispered', 'in', 'the', 'peaceful', 'forest', '.', '[SEP]'],
-## [3, 4],  <-- location of targeet word in tokenized sentence
-## ['[CLS]', 'the', 'ancient'], 
-## ['whispered', 'in', 'the', 'peaceful', 'forest', '.', '[SEP]'],
-## ['trees']]
-
-# New tokenized sentence, tokenized new word with its location:
-result2 = tokenize_new(row, is_hypo, new_id, result[2], result[3])
-# tokenized_sent_new = result2[0] # ['[CLS]', 'the', 'ancient', 'al', '##der', 'trees', 'whispered', 'in', 'the', 'peaceful', 'forest', '.', '[SEP]']
-# new_range = result2[1] # [3, 6]
-# tokens_new = result2[2] # ['al', '##der', 'trees']
-
-print(result2)
-## [['[CLS]', 'the', 'ancient', 'al', '##der', 'trees', 'whispered', 'in', 'the', 'peaceful', 'forest', '.', '[SEP]'], 
-## [3, 6],  <-- location of replacement word in tokenized sentence
-## ['al', '##der', 'trees']]
-
-# # Tokenized target word and replacement word:
-# tokenized_sent_orig[target_range[0]: target_range[1]] # ['trees']
-# tokenized_sent_new[new_range[0]: new_range[1]] # ['al', '##der', 'trees']
-
-# ========================================================
-
-# TEST OUTPUTS:
-    
-text = "im sad because you are always accusing me"
-tokens = tokenizer.tokenize("[CLS] " + text + " [SEP]") # '##ing',
-indexed_tokens = tokenizer.convert_tokens_to_ids(tokens)
-
-indexed_tokens = tokenizer.convert_tokens_to_ids(tokens)
-tokens_tensor = torch.tensor([indexed_tokens])
-   
-with torch.no_grad():
-    outputs = model(tokens_tensor) # , segments_tensors
-
-# tokens = tokenizer.convert_ids_to_tokens(inputs["input_ids"][0])
-# print(tokens) # ['[CLS]', 'im', 'sad', 'because', 'you', 'are', 'accusing', 'me', 'of', 'this', 'paradigm', '[SEP]']
-
-# # ALT:
-# inputs = tokenizer(text, return_tensors="pt", truncation=True, padding=True, max_length=768)     
-# with torch.no_grad():
-#     outputs = model(**inputs)
-
-# ---------------
-
-# Prediction:
-# probs = torch.nn.functional.softmax(outputs.logits, dim=-1) # [0.9979, 0.0021]
-# predicted_class = torch.argmax(probs, dim=-1).numpy()[0] # 0
-
-# Hidden states:
-hidden_states = outputs.hidden_states # len 7 
-# type(hidden_states)  #tuple
-# len(hidden_states) # 7: 6 layers + input embedding 
-# len(hidden_states[0]) # 1 - batch size 
-# len(hidden_states[0][0]) # 10 - No. of tokens
-# len(hidden_states[0][0][0])  # 768 - No. of hidden units
-
-embeddings = torch.stack(hidden_states, dim=0)
-# embeddings.size() #torch.Size([7, 1, 10, 768])
-embeddings = torch.squeeze(embeddings, dim=1) # remove dim 1
-# embeddings.size() #torch.Size([7, 10, 768])
-embeddings = embeddings.permute(1,0,2) # swap dims
-# embeddings.size() #torch.Size([10, 7, 768])    
-
-#  Layers: 0 - input embeds, 1 - 1st hidden state, 6 - last hidden state
-layer_embeddings = embeddings[:,5,:]
-# layer_embeddings.shape # torch.Size([10, 768])
-# layer_embeddings.numpy().shape #  (10, 768) np.array
-
-# layer_embeddings = hidden_states[5].squeeze(0).numpy()  # ALT
-# layer_embeddings.shape # (10, 768) np.array
-
-
-# ------------------------------------------------------
-
-# HIDDEN STATES:
-# layer5_embeddings = hid_new[5] # torch.Size([11, 768])
-# target_emb = layer5_embeddings[new_range[0],:]
-# target_emb.shape # torch.Size([768])
-
-# ------------------------------------------------------
-
-# REMOVED FROM make_pca_df():    
-    # # B) PCA sparately for each layer:  NO! (vt scrap)
-    # for layer in layers: # 0 - input embedding layer, 1 - first hidden state, -1 - last hidden state
-    # # emb_layer = hidden_states[layer][0]
-    #     emb_layer = hidden_states[layer]
-    #     # emb_layer.size() # torch.Size([11, 768])
-    
-    #     # PCA:
-    #     pca = PCA(n_components=2)
-    #     pca_2 = pca.fit_transform(emb_layer)
-    #     # pca_2.shape # (11, 2)
-    
-    #     # SCALE FOR PLOTTING:
-    #     if use_scaling:
-    #         pca_scaled = MinMaxScaler().fit_transform(pca_2)  # (11, 2)
-    #     else:
-    #         pca_scaled = pca_2
-    
-    #     # STORE IN DF:
-    #     pca_df["pc1_layer" + str(layer)] = pca_scaled[:,0] # shape (11,)
-    #     pca_df["pc2_layer" + str(layer)] = pca_scaled[:,1]
-    
-# ------------------------------------------------------
-
-# PCA OF EMBEDDINGS OF ONE SENTENCE:
-
-# a) Original sentence (containing target word):
-pca_df_target = make_pca_df(hid_target, result[0], result[1], layers, use_scaling, n_components=2)
-
-plot_embeddings(layers, pca_df_target, figsize, use_scaling) 
-
-# b) Sentence where target word has beed replaced with hyponym/hypernym:
-pca_df_new = make_pca_df(hid_new, result2[0], result2[1], layers, use_scaling, n_components=2)
-
-plot_embeddings(layers, pca_df_new, figsize, use_scaling) 
-
-# ------------------------------------------------------
-
-# FINAL:
-
-figsize = [12, 6] # [18, 6]
-layers = [1, 2, 3, 4, 5, 6] # [0, 1, -1] # [1, 5] # for pca plots
-use_scaling = True # dont change (for pca)
-
-# for i, h in enumerate(df.hyper):
-#     if "dog" in h:
-#         print(i)
-        
-sent_id = 8
-is_hypo = True # False # True # hyponyme or hypernymee
-new_id = 0 # id of hyponyme or hypernyme in their list
-join_toks = True # False # True
-
-# a) Original sentence (containing target word):
-result, hid_target = get_results_orig(df, sent_id, model, join_toks)
-# pca_df_target = make_pca_df(hid_target, result, layers, use_scaling, join_toks, n_components=2)
-# plot_embeddings(layers, pca_df_target, figsize, use_scaling) 
-pca_plot(hid_target, result, layers, figsize, use_scaling, join_toks, n_components=2)
-
-
-# b) Sentence with hyponym/hypernym:
-result2, hid_new = get_results_new(df, sent_id, is_hypo, new_id, result, model, join_toks)
-# pca_df_new = make_pca_df(hid_new, result2, layers, use_scaling, join_toks, n_components=2)
-# plot_embeddings(layers, pca_df_new, figsize, use_scaling) 
-pca_plot(hid_new, result2, layers, figsize, use_scaling, join_toks, n_components=2)
-
-
-pca_plot(hid_new, result2, layers, figsize, True, join_toks, n_components=2)
-pca_plot(hid_new, result2, layers, figsize, False, join_toks, n_components=2)
-
-# ------------------------------------------------------
-
-
-# ------------------------------------------------------
-
-
-
-
-
-
-
-    
